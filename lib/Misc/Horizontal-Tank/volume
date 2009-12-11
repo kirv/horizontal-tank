@@ -1,0 +1,128 @@
+#!/usr/bin/perl -w
+# implement as thinobject type Horizontal-Tank, ki 11dec2009
+# horizTank.pl 09sep97 kci, modified 11jan2001 kci
+# 19feb2001 -- added output conversion factor
+# 06mar2002 -- added documentation statement for "$factor"
+
+use strict;
+
+use constant PI => atan2(1,1) * 4;
+
+my $verbose = 1;
+
+my $R;
+my $L;
+my $d;
+my $units = 'units';
+my $output;
+opendir OB, '.' or die $!;
+my $factor = 1;
+foreach ( readdir OB ) {
+    next unless m/^(\S+)=(\S+)$/;
+    $R = $2 if $1 eq 'radius';
+    $L = $2 if $1 eq 'length';
+    $d = $2 if $1 eq 'depth';
+    $units = $2 if $1 eq 'units';
+    $output = $2 if $1 eq 'output';
+    }
+
+my %convert = (
+    'ft^3:gal' => 6.4,
+    'feet^3:gal' => 6.4,
+    'in^3:gal' => 0.004329,
+    'inch^3:gal' => 0.004329,
+    );
+
+if ( $output ) {
+    my $conversion = "$units^3:$output";
+    die "no conversion from $units to $output\n"
+        unless exists $convert{ $conversion };
+    $factor = $convert{ $conversion }
+    }
+else {
+    $output = "$units^3";
+    }
+
+$d = shift if @ARGV;
+
+die "no depth is defined or given\n"
+    unless defined $d;
+
+die "depth $d more than twice radius $R\n"
+    if $d > 2 * $R;
+
+foreach my $p ($d, $R, $L) {
+    next if defined $p;
+    print "ERROR: INPUT REQUIRED. SYNOPSIS:\n",
+        "    \$ $0 radius length depth [volume_multiplier]\n",
+        "    where:\n",
+        "        all 3 length parameters must be in the same units\n",
+        "        optional volume_multiplier is applied to the result\n",
+        ;
+    exit 1;
+    }
+
+my $y = $d - $R; # $y is level relative to middle of tank
+
+if ( $y > 2*$R ) {
+    print "ERROR: DEPTH CANNOT EXCEED TANK DIAMETER (2R)\n";
+    exit 1;
+    }
+
+my $A = PI * $R**2;
+
+# print "length=$L, radius=$R, depth=$d, area=$A\n"
+#     if $verbose;
+
+my $V = $L * ($A/2 + $y*sqrt($R**2 - $y**2) + $R**2 * arcsin($y/$R));
+
+printf "%f %s at %f %s\n", $V * $factor, $output, $d, $units;
+
+# if ( $verbose ) {
+#     printf "%f %s at %f %s\n", $V * $factor, $output, $d, $units;
+#     }
+# else {
+#     printf "%f %s\n", $V * $factor, $output;
+#     }
+
+sub arcsin { atan2($_[0], sqrt(1 - $_[0] * $_[0])) }
+
+sub get_attr {
+    my @attr = @_;
+    my %values;
+    foreach my $path ( split /:/, $ENV{TOB_attribute_search_path} ) {
+        opendir P, $path or die $!;
+        foreach ( readdir P ) {
+            last unless m/^(\S+)=(\S+)$/;
+            my $i = 0;
+            while ( $i < $#attr ) {
+                $value{$1} = $2;
+    
+
+                return $1 if m/^$attr=(\S+)$/;
+                }
+            }
+        closedir P or die $!;
+        }
+
+    }
+
+__END__
+
+Barry, 
+
+Re Scada and horizontal storage tanks, here's an algorithm that requires 
+no temporary varibles.  Ill use the symbols R and L to represent the radius 
+and length of the tank, A to represent its cross-sectional area, and y to 
+refer to the depth, but relative to the center of the tank.  So if the tank 
+is 1/2 full, y=0, and when y=-R the tank is empty.  Also, I multiply by a 
+constant, C, to convert the result to gallons (or whatever units they want 
+to see).  In the implementation R, L, and C would be replaced by calculated 
+values, as would A/2 and R**2, so the only unknown value is y. 
+
+    volume = L * C * (A/2 + y*sqrt(R**2 - y**2) + R**2 * arcsin(y/R));
+
+L, R, and y must be in the same units, whether feet, inches, meters, etc, and 
+the conversion factor C must also be expressed accordingly, e.g., 6.4 gal/ft**3.
+
+

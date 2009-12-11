@@ -1,0 +1,34 @@
+#!/bin/sh
+
+synopsis="Horizontal-Tank.set-attr attr value [attr value]... [-h|--help]"
+
+while :; do
+    case $1 in
+        -h) exec printf "synopsis: %s\n" $synopsis
+            ;;
+        --help)
+            exec awk '/^NAME/{ok=1}ok{print}' $0
+            ;;
+        -?*)
+            printf "synopsis: %s\n" $synopsis >&2
+            exit 1
+            ;;
+        *)  break
+            ;;
+    esac
+    shift
+done
+
+while test -n "$1"; do
+    attr=$1 && shift
+    value=$1 && shift
+    
+    for prop in "$attr="*; do
+        test $prop == "$attr=*" && break
+        echo removing $prop
+        rm $prop || exit 1
+    done
+    
+    touch $attr=$value
+done
+

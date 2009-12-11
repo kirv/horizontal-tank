@@ -1,0 +1,55 @@
+#!/bin/sh
+
+synopsis="Horizontal-Tank.init [-h|--help] [{radius|length|units|output} value]..."
+
+while :; do
+    case $1 in
+        --length)
+            shift
+            length=$1
+            ;;
+        --radius)
+            shift
+            radius=$1
+            ;;
+        --depth)
+            shift
+            depth=$1
+            ;;
+        --units)
+            shift
+            units=$1
+            ;;
+        --output)
+            shift
+            output=$1
+            ;;
+        -h) exec printf "synopsis: %s\n" $synopsis
+            ;;
+        --help)
+            exec awk '/^NAME/{ok=1}ok{print}' $0
+            ;;
+        -?*)
+            printf "synopsis: %s\n" $synopsis >&2
+            exit 1
+            ;;
+        *)  break
+            ;;
+    esac
+    shift
+done
+
+tob ..set-attr "${@}"
+
+# test -n "$radius" &&
+#     touch radius=$radius
+# 
+# test -n "$length" &&
+#     touch length=$length
+# 
+# test -n "$units" &&
+#     touch units=$units
+# 
+# test -n "$depth" &&
+#     touch depth=$depth
+
